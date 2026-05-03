@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tree Testing Tool</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <button class="logo-btn" onclick="App.navigate('home')">🌳 Tree Testing</button>
+      <div id="header-breadcrumb" class="header-breadcrumb"></div>
+    </div>
+  </header>
+
+  <main id="main-content" class="main-content"></main>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-box" class="modal-box">
+      <button class="modal-close" onclick="hideModal()">✕</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="js/participant-template.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
