@@ -521,3 +521,80 @@ textarea.form-input { resize: vertical; }
 
 /* ===== SCROLLABLE ===== */
 .scroll-x { overflow-x: auto; }
+
+/* ===== LANG TOGGLE (header) ===== */
+.lang-toggle {
+  display: flex;
+  background: rgba(255,255,255,0.12);
+  border-radius: 99px;
+  padding: 2px;
+  gap: 2px;
+  margin-left: auto;
+}
+.lang-opt {
+  background: none;
+  border: none;
+  padding: .2rem .65rem;
+  border-radius: 99px;
+  font-size: .75rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: background .12s, color .12s;
+}
+.lang-opt.active {
+  background: rgba(255,255,255,0.2);
+  color: #f8fafc;
+}
+.lang-opt:not(.active):hover { color: #e2e8f0; }
+
+/* ===== CHARTS ===== */
+.charts-row {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+.chart-card {
+  flex: 1;
+  min-width: 260px;
+}
+.chart-card h4 {
+  margin-bottom: .85rem;
+  font-size: .825rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #64748b;
+}
+
+/* ===== RESULTS PASS/FAIL ===== */
+.result-pass {
+  display: inline-block;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  padding: .1rem .45rem;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.result-fail {
+  display: inline-block;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: .1rem .45rem;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+
+/* ===== SORTABLE TABLE HEADERS ===== */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.sortable:hover { background: #f1f5f9; }
