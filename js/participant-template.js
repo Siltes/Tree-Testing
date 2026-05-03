@@ -319,7 +319,7 @@ function renderTask() {
   html += '<div class="card">';
   html += '<div class="task-number">Task ' + (state.currentTaskIndex + 1) + '</div>';
   html += '<div class="task-question">' + eh(task.question) + '</div>';
-  html += '<div class="task-hint">Navigate the tree below and click <strong>Select</strong> next to the item where you\'d expect to find it.</div>';
+  html += '<div class="task-hint">Navigate the tree below and click <strong>Select</strong> next to the item where you would expect to find it.</div>';
   html += '</div>';
 
   // Breadcrumb
@@ -343,12 +343,12 @@ function renderTask() {
     children.forEach(function(node) {
       var hasChildren = node.children && node.children.length > 0;
       html += '<div class="tree-item-row">';
-      html += '<div class="item-main" onclick="' + (hasChildren ? 'navigateInto(\'' + node.id + '\')' : 'selectNode(\'' + node.id + '\')') + '">';
+      html += '<div class="item-main" onclick="' + (hasChildren ? 'navigateInto(&quot;' + node.id + '&quot;)' : 'selectNode(&quot;' + node.id + '&quot;)') + '">';
       html += '<span class="item-icon">' + (hasChildren ? '&#128193;' : '&#128196;') + '</span>';
       html += '<span class="item-label">' + eh(node.label) + '</span>';
       if (hasChildren) html += '<span class="item-chevron">&#9658;</span>';
       html += '</div>';
-      html += '<button class="item-select-btn" onclick="selectNode(\'' + node.id + '\')">Select</button>';
+      html += '<button class="item-select-btn" onclick="selectNode(&quot;' + node.id + '&quot;)">Select</button>';
       html += '</div>';
     });
   }
@@ -362,8 +362,8 @@ function renderDone() {
   if (CAMPAIGN.ownerEmail) {
     var subject = encodeURIComponent('Tree Test Results: ' + CAMPAIGN.name);
     var body = encodeURIComponent(
-      'Hi,\n\nI have completed the tree test "' + CAMPAIGN.name + '".\n' +
-      'Please find the results file attached: ' + state.resultFilename + '\n\n' +
+      'Hi,\\n\\nI have completed the tree test "' + CAMPAIGN.name + '".\\n' +
+      'Please find the results file attached: ' + state.resultFilename + '\\n\\n' +
       'Participant: ' + state.participantName
     );
     mailtoHref = 'mailto:' + encodeURIComponent(CAMPAIGN.ownerEmail) +
@@ -397,7 +397,7 @@ function renderDone() {
     html += '<div class="mailto-box">';
     html += '<h4>&#128231; Send results by email</h4>';
     html += '<p>Click below to open your email client. <strong>Attach the file above</strong> before sending.</p>';
-    html += '<a href="' + mailtoHref + '" class="btn btn-primary">Open Email Client</a>';
+    html += '<a href="' + eh(mailtoHref) + '" class="btn btn-primary">Open Email Client</a>';
     html += '</div>';
   }
 
