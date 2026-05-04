@@ -41,7 +41,7 @@ const T = {
     perTaskBreakdown: 'Per-Task Breakdown',
     response: 'response', responses: 'responses', correct: 'correct', avgTime: 'avg',
     participant: 'Participant', selected: 'Selected', pathTaken: 'Path taken', time: 'Time',
-    passed: 'PASSED', failed: 'FAILED',
+    passed: 'PASSED', failed: 'FAILED', notFound: '(not found)',
     errorRateChart: 'Error Rate by Task (%)', avgTimeChart: 'Average Time by Task (s)',
     newCampaignTitle: 'New Campaign', editCampaignTitle: 'Edit Campaign Info',
     campaignNameLabel: 'Campaign name', descriptionLabel: 'Description',
@@ -108,7 +108,7 @@ const T = {
     perTaskBreakdown: 'Détail par tâche',
     response: 'réponse', responses: 'réponses', correct: 'correct', avgTime: 'moy.',
     participant: 'Participant', selected: 'Sélectionné', pathTaken: 'Chemin parcouru', time: 'Temps',
-    passed: 'RÉUSSI', failed: 'ÉCHOUÉ',
+    passed: 'RÉUSSI', failed: 'ÉCHOUÉ', notFound: '(non trouvé)',
     errorRateChart: 'Taux d\'erreur par tâche (%)', avgTimeChart: 'Temps moyen par tâche (s)',
     newCampaignTitle: 'Nouvelle campagne', editCampaignTitle: 'Modifier la campagne',
     campaignNameLabel: 'Nom de la campagne', descriptionLabel: 'Description',
@@ -607,7 +607,7 @@ function renderTaskResultCard(campaign, results, ts, i) {
                 const p = results.find(r => (r.tasks || []).includes(tr));
                 return `<tr>
                   <td>${escapeHtml((p || {}).participantName || '?')}</td>
-                  <td>${escapeHtml(tr.selectedNodeLabel || '—')}</td>
+                  <td>${escapeHtml(tr.selectedNodeLabel != null ? tr.selectedNodeLabel : t('notFound'))}</td>
                   <td class="path-cell">${(tr.selectedPath || []).join(' › ')}</td>
                   <td>${tr.isCorrect
                     ? `<span class="result-pass">${t('passed')}</span>`

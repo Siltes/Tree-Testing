@@ -42,21 +42,45 @@ function generateParticipantHTML(campaign) {
     .task-question { font-size: 1.2rem; font-weight: 600; color: #0f172a; line-height: 1.45; }
     .task-hint { font-size: .82rem; color: #64748b; margin-top: .5rem; }
 
-    /* Full tree */
+    /* Collapsible tree */
     .tree-full { margin-top: .75rem; }
-    .tree-ul { list-style: none; margin: 0; }
+    .tree-ul { list-style: none; margin: 0; padding: 0; }
     .tree-li { margin: 3px 0; }
-    .tree-sub { padding-left: 1.4rem; margin-top: 3px; }
-    .tree-node-btn {
-      display: flex; align-items: center; gap: .5rem; width: 100%;
-      padding: .45rem .75rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
-      cursor: pointer; font-size: .9rem; font-family: inherit; color: #1e293b; text-align: left;
-      transition: background .1s, border-color .1s, transform .05s;
+    .tree-ch { padding-left: 1.4rem; margin-top: 3px; display: none; }
+    .tree-ch.open { display: block; }
+    .tree-row {
+      display: flex; align-items: center; gap: .35rem; width: 100%;
     }
-    .tree-node-btn:hover { background: #f0f7ff; border-color: #93c5fd; }
-    .tree-node-btn.selecting { background: #dbeafe; border-color: #2563eb; transform: scale(.99); }
-    .tree-bullet { color: #94a3b8; flex-shrink: 0; font-size: .85rem; width: 12px; text-align: center; }
-    .tree-node-label { flex: 1; }
+    .tree-toggle {
+      flex-shrink: 0; width: 22px; height: 22px; border: none; background: none;
+      cursor: pointer; font-size: .75rem; color: #64748b; padding: 0; display: flex;
+      align-items: center; justify-content: center; border-radius: 4px;
+      transition: background .1s;
+    }
+    .tree-toggle:hover { background: #e2e8f0; }
+    .tree-spacer { flex-shrink: 0; width: 22px; text-align: center; color: #94a3b8; font-size: .8rem; }
+    .tree-lbl {
+      flex: 1; padding: .42rem .65rem; background: #fff; border: 1px solid #e2e8f0;
+      border-radius: 6px; cursor: pointer; font-size: .9rem; font-family: inherit;
+      color: #1e293b; text-align: left; transition: background .1s, border-color .1s;
+    }
+    .tree-lbl:hover { background: #f0f7ff; border-color: #93c5fd; }
+    .tree-sel {
+      flex-shrink: 0; padding: .3rem .65rem; background: #2563eb; color: #fff;
+      border: none; border-radius: 6px; font-size: .8rem; font-weight: 600;
+      font-family: inherit; cursor: pointer; white-space: nowrap;
+      transition: background .12s, transform .05s;
+    }
+    .tree-sel:hover { background: #1d4ed8; }
+    .tree-sel.selecting { background: #1d4ed8; transform: scale(.97); }
+    /* "I don't find it" */
+    .dont-find-wrap { margin-top: 1.25rem; text-align: center; }
+    .btn-dont-find {
+      background: none; border: 1px solid #d1d5db; color: #64748b;
+      padding: .45rem 1rem; border-radius: 8px; font-size: .875rem;
+      font-family: inherit; cursor: pointer; transition: background .12s, border-color .12s;
+    }
+    .btn-dont-find:hover { background: #f8fafc; border-color: #94a3b8; color: #334155; }
 
     /* Buttons */
     .btn {
@@ -124,7 +148,9 @@ var PT = {
     retryMsg: "If the file did not download automatically,",
     clickHere: "click here",
     retryMsg2: "to download it again.",
-    nameAlert: "Please enter your name before starting."
+    nameAlert: "Please enter your name before starting.",
+    selectBtn: "Select",
+    dontFind: "I don't find it"
   },
   fr: {
     startTitle: "Test Arborescent",
@@ -150,7 +176,9 @@ var PT = {
     retryMsg: "Si le fichier ne s'est pas téléchargé automatiquement,",
     clickHere: "cliquez ici",
     retryMsg2: "pour le télécharger à nouveau.",
-    nameAlert: "Veuillez entrer votre nom avant de commencer."
+    nameAlert: "Veuillez entrer votre nom avant de commencer.",
+    selectBtn: "Choisir",
+    dontFind: "Je ne trouve pas"
   }
 };
 
@@ -162,7 +190,8 @@ var state = {
   currentNavHistory: [],
   taskResults: [],
   resultFilename: '',
-  lang: CAMPAIGN.lang || 'en'
+  lang: CAMPAIGN.lang || 'en',
+  expandedNodes: {}
 };
 
 function tl(key, a, b) {
@@ -242,24 +271,37 @@ function renderTask() {
   html += '</div>';
 
   html += '<div class="tree-full">';
-  html += renderFullTree(CAMPAIGN.tree.nodes, false);
+  html += renderCollapsibleTree(CAMPAIGN.tree.nodes);
+  html += '</div>';
+  html += '<div class="dont-find-wrap">';
+  html += '<button class="btn-dont-find" onclick="dontFind()">' + tl('dontFind') + '</button>';
   html += '</div>';
 
   return html;
 }
 
-function renderFullTree(nodes, isSub) {
-  var html = '<ul class="tree-ul' + (isSub ? '' : '') + '">';
+function renderCollapsibleTree(nodes) {
+  var html = '<ul class="tree-ul">';
   for (var i = 0; i < nodes.length; i++) {
     var node = nodes[i];
     var hasChildren = node.children && node.children.length > 0;
+    var isOpen = !!state.expandedNodes[node.id];
     html += '<li class="tree-li">';
-    html += '<button class="tree-node-btn" id="btn-' + node.id + '" onclick="selectNode(&quot;' + node.id + '&quot;)">';
-    html += '<span class="tree-bullet">' + (hasChildren ? '◦' : '•') + '</span>';
-    html += '<span class="tree-node-label">' + eh(node.label) + '</span>';
-    html += '</button>';
+    html += '<div class="tree-row">';
     if (hasChildren) {
-      html += '<div class="tree-sub">' + renderFullTree(node.children, true) + '</div>';
+      html += '<button class="tree-toggle" id="tog-' + node.id + '" onclick="toggleNode(&quot;' + node.id + '&quot;)">' +
+        (isOpen ? '&#9660;' : '&#9654;') + '</button>';
+    } else {
+      html += '<span class="tree-spacer">&#8226;</span>';
+    }
+    html += '<button class="tree-lbl" onclick="' + (hasChildren ? 'toggleNode(&quot;' + node.id + '&quot;)' : 'selectNode(&quot;' + node.id + '&quot;)') + '">' +
+      eh(node.label) + '</button>';
+    html += '<button class="tree-sel" id="btn-' + node.id + '" onclick="selectNode(&quot;' + node.id + '&quot;)">' + tl('selectBtn') + '</button>';
+    html += '</div>';
+    if (hasChildren) {
+      html += '<div class="tree-ch' + (isOpen ? ' open' : '') + '" id="ch-' + node.id + '">';
+      html += renderCollapsibleTree(node.children);
+      html += '</div>';
     }
     html += '</li>';
   }
@@ -327,7 +369,18 @@ function startTest() {
 function beginTask() {
   state.taskStartTime = Date.now();
   state.currentNavHistory = [];
+  state.expandedNodes = {};
 }
+
+function toggleNode(nodeId) {
+  state.expandedNodes[nodeId] = !state.expandedNodes[nodeId];
+  var ch = document.getElementById('ch-' + nodeId);
+  var tog = document.getElementById('tog-' + nodeId);
+  if (ch) { ch.classList.toggle('open', !!state.expandedNodes[nodeId]); }
+  if (tog) { tog.innerHTML = state.expandedNodes[nodeId] ? '&#9660;' : '&#9654;'; }
+}
+
+function dontFind() { commitSelection(null); }
 
 function selectNode(nodeId) {
   var btn = document.getElementById('btn-' + nodeId);
@@ -336,18 +389,17 @@ function selectNode(nodeId) {
 }
 
 function commitSelection(nodeId) {
-  var node = findNode(CAMPAIGN.tree.nodes, nodeId);
-  if (!node) return;
-
   var task = CAMPAIGN.tasks[state.currentTaskIndex];
   var timeSpent = Date.now() - state.taskStartTime;
-  var selectedPath = buildPath(CAMPAIGN.tree.nodes, nodeId);
-  var isCorrect = (task.correctNodeIds || []).indexOf(nodeId) !== -1;
+  var node = nodeId != null ? findNode(CAMPAIGN.tree.nodes, nodeId) : null;
+  var selectedPath = nodeId != null ? buildPath(CAMPAIGN.tree.nodes, nodeId) : null;
+  var isCorrect = nodeId != null && (task.correctNodeIds || []).indexOf(nodeId) !== -1;
 
-  state.currentNavHistory.push({ nodeId: nodeId, label: node.label, action: 'select' });
+  if (node) { state.currentNavHistory.push({ nodeId: nodeId, label: node.label, action: 'select' }); }
   state.taskResults.push({
     taskId: task.id, question: task.question,
-    selectedNodeId: nodeId, selectedNodeLabel: node.label,
+    selectedNodeId: nodeId != null ? nodeId : null,
+    selectedNodeLabel: node ? node.label : null,
     selectedPath: selectedPath, correctNodeIds: task.correctNodeIds || [],
     isCorrect: isCorrect, timeSpentMs: timeSpent,
     navigationHistory: state.currentNavHistory.slice()
