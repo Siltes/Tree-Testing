@@ -522,6 +522,26 @@ textarea.form-input { resize: vertical; }
 /* ===== SCROLLABLE ===== */
 .scroll-x { overflow-x: auto; }
 
+/* ===== TRANSLATION TABLE ===== */
+.translate-scroll { max-height: 58vh; overflow-y: auto; margin: 0 -1.5rem; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+.translate-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.translate-table th {
+  background: #f8fafc; padding: .55rem .75rem; border-bottom: 2px solid #e2e8f0;
+  font-weight: 600; color: #374151; text-align: left;
+  position: sticky; top: 0; z-index: 1;
+}
+.translate-table th:first-child { width: 50%; }
+.translate-table td { padding: .3rem .75rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.translate-table tr:last-child td { border-bottom: none; }
+.translate-fr { color: #475569; }
+.translate-table input {
+  width: 100%; padding: .3rem .55rem; border: 1px solid #d1d5db; border-radius: 4px;
+  font-size: .875rem; font-family: inherit; background: #fff;
+  transition: border-color .12s, box-shadow .12s;
+}
+.translate-table input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,.15); }
+.translate-table input::placeholder { color: #94a3b8; }
+
 /* ===== LANG TOGGLE (header) ===== */
 .lang-toggle {
   display: flex;

@@ -270,6 +270,12 @@ function getTaskQuestion(task) {
   return typeof q === 'string' ? q : '';
 }
 
+function getNodeLabel(node) {
+  var lbl = node.label;
+  if (lbl && typeof lbl === 'object') return lbl[state.lang] || lbl.fr || lbl.en || '';
+  return typeof lbl === 'string' ? lbl : '';
+}
+
 function findNode(nodes, id) {
   for (var i = 0; i < nodes.length; i++) {
     if (nodes[i].id === id) return nodes[i];
@@ -430,7 +436,7 @@ function renderCollapsibleTree(nodes) {
     }
 
     html += '<button class="tree-lbl" onclick="selectNode(&quot;' + node.id + '&quot;)">' +
-      eh(node.label) + '</button>';
+      eh(getNodeLabel(node)) + '</button>';
 
     if (isSelected) {
       html += '<span class="tree-check">&#10003;</span>';
@@ -553,11 +559,11 @@ function commitSelection(nodeId) {
   var selectedPath = nodeId != null ? buildPath(CAMPAIGN.tree.nodes, nodeId) : null;
   var isCorrect = nodeId != null && (task.correctNodeIds || []).indexOf(nodeId) !== -1;
 
-  if (node) { state.currentNavHistory.push({ nodeId: nodeId, label: node.label, action: 'select' }); }
+  if (node) { state.currentNavHistory.push({ nodeId: nodeId, label: getNodeLabel(node), action: 'select' }); }
   state.taskResults.push({
     taskId: task.id, question: getTaskQuestion(task),
     selectedNodeId: nodeId != null ? nodeId : null,
-    selectedNodeLabel: node ? node.label : null,
+    selectedNodeLabel: node ? getNodeLabel(node) : null,
     selectedPath: selectedPath, correctNodeIds: task.correctNodeIds || [],
     isCorrect: isCorrect, timeSpentMs: timeSpent,
     navigationHistory: state.currentNavHistory.slice()
@@ -578,7 +584,7 @@ function buildPath(nodes, targetId, path) {
   path = path || [];
   for (var i = 0; i < nodes.length; i++) {
     var node = nodes[i];
-    var newPath = path.concat([node.label]);
+    var newPath = path.concat([getNodeLabel(node)]);
     if (node.id === targetId) return newPath;
     if (node.children && node.children.length) {
       var result = buildPath(node.children, targetId, newPath);

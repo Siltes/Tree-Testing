@@ -43,6 +43,9 @@ const T = {
     participant: 'Participant', selected: 'Selected', pathTaken: 'Path taken', time: 'Time',
     passed: 'PASSED', failed: 'FAILED', notFound: '(not found)', passedFailed: 'PASSED/FAILED',
     questionLabelFr: 'Question (French)', questionLabelEn: 'Question (English)',
+    translateTree: 'EN Labels', translateTitle: 'English Node Labels',
+    translateDesc: 'Add an English label for each node. Participants will see labels in their selected language. Leave a field blank to fall back to the French label.',
+    labelFr: 'French (default)', labelEn: 'English', saveTranslationsBtn: 'Save Labels',
     errorRateChart: 'Error Rate by Task (%)', avgTimeChart: 'Average Time by Task (s)',
     newCampaignTitle: 'New Campaign', editCampaignTitle: 'Edit Campaign Info',
     campaignNameLabel: 'Campaign name', descriptionLabel: 'Description',
@@ -111,6 +114,9 @@ const T = {
     participant: 'Participant', selected: 'Sélectionné', pathTaken: 'Chemin parcouru', time: 'Temps',
     passed: 'RÉUSSI', failed: 'ÉCHOUÉ', notFound: '(non trouvé)', passedFailed: 'RÉUSSI/ÉCHOUÉ',
     questionLabelFr: 'Question (français)', questionLabelEn: 'Question (anglais)',
+    translateTree: 'Libellés EN', translateTitle: 'Libellés en anglais',
+    translateDesc: 'Ajoutez un libellé anglais pour chaque nœud. Les participants verront les libellés dans leur langue. Laissez vide pour utiliser le libellé français.',
+    labelFr: 'Français (par défaut)', labelEn: 'Anglais', saveTranslationsBtn: 'Enregistrer les libellés',
     errorRateChart: 'Taux d\'erreur par tâche (%)', avgTimeChart: 'Temps moyen par tâche (s)',
     newCampaignTitle: 'Nouvelle campagne', editCampaignTitle: 'Modifier la campagne',
     campaignNameLabel: 'Nom de la campagne', descriptionLabel: 'Description',
@@ -190,7 +196,7 @@ function parseCSV(text) {
     let children = root.nodes, pathKey = '';
     parts.forEach(part => {
       pathKey = pathKey ? pathKey + '\x00' + part : part;
-      if (!idx[pathKey]) { const n = { id: 'n_' + generateId(), label: part, children: [] }; idx[pathKey] = n; children.push(n); }
+      if (!idx[pathKey]) { const n = { id: 'n_' + generateId(), label: { fr: part, en: '' }, children: [] }; idx[pathKey] = n; children.push(n); }
       children = idx[pathKey].children;
     });
   });
@@ -204,7 +210,7 @@ function parseMD(text) {
     const m = line.match(/^(\s*)[*\-+]\s+(.+)$/);
     if (!m) return;
     const level = Math.floor(m[1].length / 2);
-    const node = { id: 'n_' + generateId(), label: m[2].trim(), children: [] };
+    const node = { id: 'n_' + generateId(), label: { fr: m[2].trim(), en: '' }, children: [] };
     while (stack.length > 1 && stack[stack.length - 1].level >= level) stack.pop();
     stack[stack.length - 1].children.push(node);
     stack.push({ level, children: node.children });
@@ -227,6 +233,45 @@ function getTaskQuestion(task, l) {
   const q = task.question;
   if (q && typeof q === 'object') return q[l || lang] || q.fr || q.en || '';
   return typeof q === 'string' ? q : '';
+}
+
+function getNodeLabel(node, l) {
+  if (!node) return '';
+  const lbl = node.label;
+  if (lbl && typeof lbl === 'object') return lbl[l || lang] || lbl.fr || lbl.en || '';
+  return typeof lbl === 'string' ? lbl : '';
+}
+
+function flattenWithDepth(nodes, depth, result) {
+  depth = depth || 0; result = result || [];
+  (nodes || []).forEach(n => {
+    result.push({ node: n, depth });
+    if (n.children && n.children.length) flattenWithDepth(n.children, depth + 1, result);
+  });
+  return result;
+}
+
+function buildNodePathIndex(nodes, path, idx) {
+  path = path || []; idx = idx || {};
+  (nodes || []).forEach(n => {
+    const key = path.concat([getNodeLabel(n, 'fr')]).join('\x00');
+    idx[key] = n;
+    if (n.children && n.children.length) buildNodePathIndex(n.children, path.concat([getNodeLabel(n, 'fr')]), idx);
+  });
+  return idx;
+}
+
+function applyEnTranslations(newNodes, oldIdx, path) {
+  path = path || [];
+  (newNodes || []).forEach(n => {
+    const frLabel = getNodeLabel(n, 'fr');
+    const key = path.concat([frLabel]).join('\x00');
+    const old = oldIdx[key];
+    if (old && old.label && typeof old.label === 'object' && old.label.en) {
+      n.label = { fr: frLabel, en: old.label.en };
+    }
+    if (n.children && n.children.length) applyEnTranslations(n.children, oldIdx, path.concat([frLabel]));
+  });
 }
 
 function reEvaluateResults(campaign) {
@@ -415,6 +460,7 @@ function renderTreeTab(campaign) {
         <div class="btn-group">
           <button class="btn btn-secondary btn-sm" onclick="showCSVImportModal('${campaign.id}')">${t('importCsv')}</button>
           <button class="btn btn-secondary btn-sm" onclick="showMDImportModal('${campaign.id}')">${t('importMarkdown')}</button>
+          ${hasTree ? `<button class="btn btn-secondary btn-sm" onclick="showTranslateModal('${campaign.id}')">🌐 ${t('translateTree')}</button>` : ''}
         </div>
       </div>
       ${hasTree
@@ -438,7 +484,7 @@ function renderAdminTree(nodes, depth) {
       return `<li class="tree-item">
         <div class="tree-node" onclick="${hasChildren ? `toggleTreeNode('${tid}','${cid}')` : ''}">
           <span class="tree-node-icon">${hasChildren ? '📁' : '📄'}</span>
-          <span class="tree-node-label">${escapeHtml(node.label)}</span>
+          <span class="tree-node-label">${escapeHtml(getNodeLabel(node, lang))}</span>
           ${hasChildren ? `<span class="tree-toggle" id="${tid}">▶</span>` : ''}
         </div>
         ${hasChildren ? `<div class="tree-children" id="${cid}">${renderAdminTree(node.children, depth + 1)}</div>` : ''}
@@ -480,7 +526,7 @@ function renderTasksTab(campaign) {
 function renderTaskItem(campaign, task, index) {
   const correctNodes = (task.correctNodeIds || []).map(id => {
     const n = findNodeById(campaign.tree.nodes, id);
-    return n ? n.label : '(?)';
+    return n ? getNodeLabel(n, lang) : '(?)';
   });
   return `
     <div class="task-card card">
@@ -722,6 +768,45 @@ function showMDImportModal(campaignId) {
     </div>`);
 }
 
+function showTranslateModal(campaignId) {
+  const c = DB.getCampaign(campaignId);
+  if (!c || !c.tree || !c.tree.nodes || !c.tree.nodes.length) return;
+  const flat = flattenWithDepth(c.tree.nodes);
+  const rows = flat.map(({ node, depth }) => {
+    const frLabel = getNodeLabel(node, 'fr');
+    const enLabel = (node.label && typeof node.label === 'object') ? (node.label.en || '') : '';
+    return `<tr>
+      <td><span class="translate-fr" style="padding-left:${depth * 1.25}rem">${escapeHtml(frLabel)}</span></td>
+      <td><input type="text" data-node-id="${node.id}" value="${escapeHtml(enLabel)}" placeholder="${lang === 'fr' ? 'Libellé anglais…' : 'English label…'}"></td>
+    </tr>`;
+  }).join('');
+  showModal(`<h3>🌐 ${t('translateTitle')}</h3>
+    <p class="text-muted small" style="margin-bottom:.75rem">${t('translateDesc')}</p>
+    <div class="translate-scroll">
+      <table class="translate-table">
+        <thead><tr><th>${t('labelFr')}</th><th>${t('labelEn')}</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" onclick="hideModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveTranslations('${campaignId}')">${t('saveTranslationsBtn')}</button>
+    </div>`);
+}
+
+function saveTranslations(campaignId) {
+  const c = DB.getCampaign(campaignId);
+  document.querySelectorAll('.translate-table input[data-node-id]').forEach(input => {
+    const node = findNodeById(c.tree.nodes, input.dataset.nodeId);
+    if (!node) return;
+    const frLabel = getNodeLabel(node, 'fr');
+    node.label = { fr: frLabel, en: input.value.trim() };
+  });
+  DB.saveCampaign(c);
+  hideModal();
+  App.navigate('campaign', { campaignId, tab: 'tree' });
+}
+
 function showAddTaskModal(campaignId) {
   const campaign = DB.getCampaign(campaignId);
   if (!campaign) return;
@@ -763,7 +848,7 @@ function renderTreeSelector(nodes, selectedIds, depth) {
     ${nodes.map(node => `<li>
       <label class="tree-selector-item">
         <input type="checkbox" name="correct-nodes" value="${node.id}" ${(selectedIds || []).includes(node.id) ? 'checked' : ''}>
-        <span>${escapeHtml(node.label)}</span>
+        <span>${escapeHtml(getNodeLabel(node, lang))}</span>
       </label>
       ${node.children && node.children.length ? renderTreeSelector(node.children, selectedIds, depth + 1) : ''}
     </li>`).join('')}
@@ -839,7 +924,9 @@ function importCSV(campaignId) {
   const tree = parseCSV(text);
   if (!tree.nodes.length) { alert(t('noNodesParsed')); return; }
   const c = DB.getCampaign(campaignId);
-  c.tree = tree; pruneTaskAnswers(c); reEvaluateResults(c); DB.saveCampaign(c);
+  const oldIdx = buildNodePathIndex(c.tree ? c.tree.nodes : []);
+  c.tree = tree; applyEnTranslations(c.tree.nodes, oldIdx);
+  pruneTaskAnswers(c); reEvaluateResults(c); DB.saveCampaign(c);
   hideModal(); App.navigate('campaign', { campaignId, tab: 'tree' });
 }
 
@@ -849,7 +936,9 @@ function importMD(campaignId) {
   const tree = parseMD(text);
   if (!tree.nodes.length) { alert(t('noNodesParsed')); return; }
   const c = DB.getCampaign(campaignId);
-  c.tree = tree; pruneTaskAnswers(c); reEvaluateResults(c); DB.saveCampaign(c);
+  const oldIdx = buildNodePathIndex(c.tree ? c.tree.nodes : []);
+  c.tree = tree; applyEnTranslations(c.tree.nodes, oldIdx);
+  pruneTaskAnswers(c); reEvaluateResults(c); DB.saveCampaign(c);
   hideModal(); App.navigate('campaign', { campaignId, tab: 'tree' });
 }
 
