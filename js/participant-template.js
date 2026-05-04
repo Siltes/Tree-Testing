@@ -15,7 +15,7 @@ function generateParticipantHTML(campaign) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f1f5f9; color: #1e293b; font-size: 16px; line-height: 1.5; min-height: 100vh;
     }
-    #app { max-width: 680px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    #app { max-width: 680px; margin: 0 auto; padding: 2rem 1.25rem 6rem; }
 
     /* Header */
     .p-top-bar {
@@ -32,8 +32,15 @@ function generateParticipantHTML(campaign) {
     /* Card */
     .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
 
-    /* Progress */
-    .progress-label { font-size: .8rem; color: #64748b; text-align: right; margin-bottom: .35rem; }
+    /* Progress + task nav */
+    .task-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: .35rem; }
+    .btn-back {
+      background: none; border: none; color: #64748b; font-size: .85rem; font-family: inherit;
+      cursor: pointer; padding: 0; display: flex; align-items: center; gap: .3rem;
+      transition: color .12s;
+    }
+    .btn-back:hover { color: #1e293b; }
+    .progress-label { font-size: .8rem; color: #64748b; }
     .progress-bar-wrap { background: #e2e8f0; border-radius: 99px; height: 6px; margin-bottom: 1.5rem; overflow: hidden; }
     .progress-bar-fill { background: #2563eb; height: 100%; border-radius: 99px; transition: width .35s ease; }
 
@@ -46,41 +53,68 @@ function generateParticipantHTML(campaign) {
     .tree-full { margin-top: .75rem; }
     .tree-ul { list-style: none; margin: 0; padding: 0; }
     .tree-li { margin: 3px 0; }
-    .tree-ch { padding-left: 1.4rem; margin-top: 3px; display: none; }
-    .tree-ch.open { display: block; }
-    .tree-row {
-      display: flex; align-items: center; gap: .35rem; width: 100%;
-    }
+    .tree-ch { padding-left: 1.4rem; margin-top: 3px; }
+    .tree-row { display: flex; align-items: center; gap: .35rem; width: 100%; }
     .tree-toggle {
-      flex-shrink: 0; width: 22px; height: 22px; border: none; background: none;
+      flex-shrink: 0; width: 24px; height: 30px; border: none; background: none;
       cursor: pointer; font-size: .75rem; color: #64748b; padding: 0; display: flex;
       align-items: center; justify-content: center; border-radius: 4px;
-      transition: background .1s;
+      transition: background .1s; font-family: inherit;
     }
     .tree-toggle:hover { background: #e2e8f0; }
-    .tree-spacer { flex-shrink: 0; width: 22px; text-align: center; color: #94a3b8; font-size: .8rem; }
+    .tree-spacer { flex-shrink: 0; width: 24px; text-align: center; color: #94a3b8; font-size: .8rem; }
     .tree-lbl {
-      flex: 1; padding: .42rem .65rem; background: #fff; border: 1px solid #e2e8f0;
+      flex: 1; padding: .45rem .75rem; background: #fff; border: 1px solid #e2e8f0;
       border-radius: 6px; cursor: pointer; font-size: .9rem; font-family: inherit;
       color: #1e293b; text-align: left; transition: background .1s, border-color .1s;
     }
     .tree-lbl:hover { background: #f0f7ff; border-color: #93c5fd; }
-    .tree-sel {
-      flex-shrink: 0; padding: .3rem .65rem; background: #2563eb; color: #fff;
-      border: none; border-radius: 6px; font-size: .8rem; font-weight: 600;
-      font-family: inherit; cursor: pointer; white-space: nowrap;
-      transition: background .12s, transform .05s;
+    .tree-row.selected .tree-lbl {
+      background: #dbeafe; border-color: #3b82f6; color: #1e40af; font-weight: 500;
     }
-    .tree-sel:hover { background: #1d4ed8; }
-    .tree-sel.selecting { background: #1d4ed8; transform: scale(.97); }
-    /* "I don't find it" */
-    .dont-find-wrap { margin-top: 1.25rem; text-align: center; }
-    .btn-dont-find {
-      background: none; border: 1px solid #d1d5db; color: #64748b;
-      padding: .45rem 1rem; border-radius: 8px; font-size: .875rem;
-      font-family: inherit; cursor: pointer; transition: background .12s, border-color .12s;
+    .tree-check {
+      flex-shrink: 0; width: 28px; text-align: center; color: #2563eb;
+      font-size: 1.05rem; font-weight: 700;
     }
-    .btn-dont-find:hover { background: #f8fafc; border-color: #94a3b8; color: #334155; }
+
+    /* Task action bar */
+    .task-actions {
+      display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+      position: sticky; bottom: 1rem; margin-top: 1.25rem;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: .85rem 1rem; box-shadow: 0 4px 16px rgba(0,0,0,.08);
+    }
+    .btn-cant-find {
+      background: none; border: 1px solid #d1d5db; color: #64748b; border-radius: 8px;
+      padding: .5rem 1rem; font-size: .875rem; font-family: inherit; cursor: pointer;
+      transition: background .12s, border-color .12s, color .12s; white-space: nowrap;
+    }
+    .btn-cant-find:hover { background: #f8fafc; border-color: #94a3b8; color: #334155; }
+    .btn-confirm {
+      background: #2563eb; color: #fff; border: none; border-radius: 8px;
+      padding: .6rem 1.25rem; font-size: .95rem; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: background .12s; white-space: nowrap;
+      display: flex; align-items: center; gap: .4rem;
+    }
+    .btn-confirm:hover:not(:disabled) { background: #1d4ed8; }
+    .btn-confirm:disabled {
+      background: #e2e8f0; color: #94a3b8; cursor: not-allowed;
+    }
+
+    /* Instructions page */
+    .how-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.75rem 1.5rem; }
+    .how-title { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin-bottom: .5rem; }
+    .how-intro { color: #475569; font-size: .95rem; line-height: 1.6; margin-bottom: 1.25rem; }
+    .how-steps { display: flex; flex-direction: column; gap: .85rem; margin: 1.25rem 0; }
+    .how-step { display: flex; gap: .85rem; align-items: flex-start; }
+    .how-step-num {
+      flex-shrink: 0; width: 28px; height: 28px; background: #2563eb; color: #fff;
+      border-radius: 50%; font-size: .8rem; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; margin-top: .1rem;
+    }
+    .how-step-body strong { display: block; font-size: .9rem; color: #0f172a; margin-bottom: .15rem; }
+    .how-step-body span { font-size: .875rem; color: #64748b; line-height: 1.5; }
+    .how-cta { margin-top: 1.5rem; display: flex; justify-content: flex-end; }
 
     /* Buttons */
     .btn {
@@ -131,9 +165,21 @@ var PT = {
     task: "task", tasks: "tasks",
     yourName: "Your name",
     namePlaceholder: "Your full name",
-    startBtn: "Start Test →",
+    startBtn: "Next →",
+    howTitle: "Here is how it works",
+    howIntro: "Before we dive in — this is a navigation exercise, not a quiz. There are no right or wrong answers. We are just curious to see how you would naturally find your way around.",
+    howStep1Title: "Browse",
+    howStep1: "Click the arrows to open and close sections of the tree.",
+    howStep2Title: "Pick your spot",
+    howStep2: "When you find where you would expect to look, click that item to select it — it will highlight blue.",
+    howStep3Title: "Confirm",
+    howStep3: "Hit the blue button to lock in your answer. Changed your mind? You can always go back.",
+    letsGoBtn: "Got it — let us start!",
     taskOf: "Task {0} of {1}",
-    taskHint: "Click any item in the tree below to select it as your answer.",
+    taskHint: "Browse the tree below and click an item to select it as your answer.",
+    back: "&#8592; Back",
+    confirmBtn: "I would find it here",
+    cantFind: "I can't find it",
     doneTitle: "All done — thank you!",
     doneCompleted: "You have completed all {0} {1}.",
     howToSend: "How to send your results",
@@ -148,9 +194,7 @@ var PT = {
     retryMsg: "If the file did not download automatically,",
     clickHere: "click here",
     retryMsg2: "to download it again.",
-    nameAlert: "Please enter your name before starting.",
-    selectBtn: "Select",
-    dontFind: "I don't find it"
+    nameAlert: "Please enter your name before starting."
   },
   fr: {
     startTitle: "Test Arborescent",
@@ -159,10 +203,22 @@ var PT = {
     task: "tâche", tasks: "tâches",
     yourName: "Votre nom",
     namePlaceholder: "Votre nom complet",
-    startBtn: "Commencer le test →",
+    startBtn: "Suivant →",
+    howTitle: "Voici comment ça marche",
+    howIntro: "Avant de commencer — ceci est un exercice de navigation, pas un quiz. Il n'y a pas de bonne ou mauvaise réponse. On est simplement curieux de voir comment vous vous repéreriez naturellement.",
+    howStep1Title: "Explorez",
+    howStep1: "Cliquez sur les flèches pour ouvrir et fermer les sections de l'arbre.",
+    howStep2Title: "Choisissez",
+    howStep2: "Quand vous trouvez l'endroit où vous vous attendriez à chercher, cliquez dessus pour le sélectionner — il apparaîtra en bleu.",
+    howStep3Title: "Confirmez",
+    howStep3: "Cliquez sur le bouton bleu pour valider votre réponse. Vous avez changé d'avis ? Vous pouvez toujours revenir en arrière.",
+    letsGoBtn: "C'est compris — on y va !",
     taskOf: "Tâche {0} sur {1}",
-    taskHint: "Cliquez sur n'importe quel élément de l'arbre pour le sélectionner comme réponse.",
-    doneTitle: "Terminé — merci !",
+    taskHint: "Parcourez l'arbre et cliquez sur un élément pour le sélectionner.",
+    back: "&#8592; Retour",
+    confirmBtn: "Je le trouverais ici",
+    cantFind: "Je ne trouve pas",
+    doneTitle: "Terminé — merci !",
     doneCompleted: "Vous avez complété {0} {1}.",
     howToSend: "Comment envoyer vos résultats",
     step1: "Votre fichier de résultats a été téléchargé automatiquement.",
@@ -176,9 +232,7 @@ var PT = {
     retryMsg: "Si le fichier ne s'est pas téléchargé automatiquement,",
     clickHere: "cliquez ici",
     retryMsg2: "pour le télécharger à nouveau.",
-    nameAlert: "Veuillez entrer votre nom avant de commencer.",
-    selectBtn: "Choisir",
-    dontFind: "Je ne trouve pas"
+    nameAlert: "Veuillez entrer votre nom avant de commencer."
   }
 };
 
@@ -191,7 +245,8 @@ var state = {
   taskResults: [],
   resultFilename: '',
   lang: CAMPAIGN.lang || 'en',
-  expandedNodes: {}
+  expandedNodes: {},
+  selectedNodeId: null
 };
 
 function tl(key, a, b) {
@@ -225,6 +280,7 @@ function findNode(nodes, id) {
 function render() {
   var app = document.getElementById('app');
   if (state.screen === 'welcome') app.innerHTML = renderWelcome();
+  else if (state.screen === 'instructions') app.innerHTML = renderInstructions();
   else if (state.screen === 'task') app.innerHTML = renderTask();
   else if (state.screen === 'done') app.innerHTML = renderDone();
   window.scrollTo(0, 0);
@@ -242,26 +298,93 @@ function renderWelcome() {
   var taskWord = n !== 1 ? tl('tasks') : tl('task');
   return renderLangBar() +
     '<div class="card"><div class="center-box">' +
-    '<div class="big-icon">🌳</div>' +
+    '<div class="big-icon">&#127795;</div>' +
     '<h1>' + eh(CAMPAIGN.name) + '</h1>' +
     (CAMPAIGN.description ? '<p>' + eh(CAMPAIGN.description) + '</p>' : '') +
     '<p>' + tl('willBeAsked') + ' <strong>' + n + ' ' + taskWord + '</strong>.</p>' +
     '<p class="small text-muted">' + tl('noRightWrong') + '</p>' +
     '<div class="name-input-row">' +
     '<label for="pname">' + tl('yourName') + '</label>' +
-    '<input type="text" id="pname" class="form-input" placeholder="' + tl('namePlaceholder') + '" autocomplete="name">' +
+    '<input type="text" id="pname" class="form-input" placeholder="' + tl('namePlaceholder') + '" autocomplete="name" onkeydown="if(event.key===&#39;Enter&#39;)startTest()">' +
     '</div>' +
     '<button class="btn btn-primary btn-lg" onclick="startTest()">' + tl('startBtn') + '</button>' +
     '</div></div>';
 }
 
+function renderInstructions() {
+  var svg = '<svg viewBox="0 0 430 148" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:430px;display:block;margin:1.25rem auto">' +
+    '<rect x="0" y="0" width="126" height="132" rx="8" fill="#fff" stroke="#e2e8f0"/>' +
+    '<rect x="8" y="14" width="110" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="8" y="34" width="93" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="20" y="54" width="81" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="20" y="74" width="81" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="8" y="94" width="93" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<text x="11" y="25" font-size="8" fill="#64748b" font-family="sans-serif">&#9660;</text>' +
+    '<text x="11" y="45" font-size="8" fill="#64748b" font-family="sans-serif">&#9654;</text>' +
+    '<text x="23" y="65" font-size="8" fill="#94a3b8" font-family="sans-serif">&#8226;</text>' +
+    '<text x="23" y="85" font-size="8" fill="#94a3b8" font-family="sans-serif">&#8226;</text>' +
+    '<text x="11" y="105" font-size="8" fill="#64748b" font-family="sans-serif">&#9654;</text>' +
+    '<text x="63" y="145" font-size="9" fill="#94a3b8" font-family="sans-serif" text-anchor="middle">1. Browse</text>' +
+    '<text x="138" y="72" font-size="16" fill="#cbd5e1" font-family="sans-serif">&#8250;</text>' +
+    '<rect x="152" y="0" width="126" height="132" rx="8" fill="#fff" stroke="#e2e8f0"/>' +
+    '<rect x="160" y="14" width="110" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="160" y="34" width="93" height="15" rx="3" fill="#dbeafe" stroke="#93c5fd"/>' +
+    '<rect x="172" y="54" width="81" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="172" y="74" width="81" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="160" y="94" width="93" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<text x="163" y="25" font-size="8" fill="#64748b" font-family="sans-serif">&#9660;</text>' +
+    '<text x="163" y="45" font-size="8" fill="#2563eb" font-family="sans-serif" font-weight="bold">&#10003;</text>' +
+    '<text x="175" y="65" font-size="8" fill="#94a3b8" font-family="sans-serif">&#8226;</text>' +
+    '<text x="175" y="85" font-size="8" fill="#94a3b8" font-family="sans-serif">&#8226;</text>' +
+    '<text x="163" y="105" font-size="8" fill="#64748b" font-family="sans-serif">&#9654;</text>' +
+    '<text x="215" y="145" font-size="9" fill="#94a3b8" font-family="sans-serif" text-anchor="middle">2. Select</text>' +
+    '<text x="290" y="72" font-size="16" fill="#cbd5e1" font-family="sans-serif">&#8250;</text>' +
+    '<rect x="304" y="0" width="126" height="132" rx="8" fill="#fff" stroke="#e2e8f0"/>' +
+    '<rect x="312" y="14" width="110" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="312" y="34" width="93" height="15" rx="3" fill="#dbeafe" stroke="#93c5fd"/>' +
+    '<rect x="324" y="54" width="81" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<rect x="312" y="74" width="93" height="15" rx="3" fill="#f1f5f9"/>' +
+    '<text x="315" y="25" font-size="8" fill="#64748b" font-family="sans-serif">&#9660;</text>' +
+    '<text x="315" y="45" font-size="8" fill="#2563eb" font-family="sans-serif" font-weight="bold">&#10003;</text>' +
+    '<text x="327" y="65" font-size="8" fill="#94a3b8" font-family="sans-serif">&#8226;</text>' +
+    '<text x="315" y="85" font-size="8" fill="#64748b" font-family="sans-serif">&#9654;</text>' +
+    '<rect x="312" y="97" width="110" height="24" rx="5" fill="#2563eb"/>' +
+    '<text x="367" y="113" font-size="8" fill="#fff" font-family="sans-serif" text-anchor="middle" font-weight="bold">I would find it here</text>' +
+    '<text x="367" y="145" font-size="9" fill="#94a3b8" font-family="sans-serif" text-anchor="middle">3. Confirm</text>' +
+    '</svg>';
+
+  return renderLangBar() +
+    '<div class="how-card">' +
+    '<div class="how-title">' + tl('howTitle') + '</div>' +
+    '<p class="how-intro">' + tl('howIntro') + '</p>' +
+    svg +
+    '<div class="how-steps">' +
+    '<div class="how-step"><div class="how-step-num">1</div><div class="how-step-body"><strong>' + tl('howStep1Title') + '</strong><span>' + tl('howStep1') + '</span></div></div>' +
+    '<div class="how-step"><div class="how-step-num">2</div><div class="how-step-body"><strong>' + tl('howStep2Title') + '</strong><span>' + tl('howStep2') + '</span></div></div>' +
+    '<div class="how-step"><div class="how-step-num">3</div><div class="how-step-body"><strong>' + tl('howStep3Title') + '</strong><span>' + tl('howStep3') + '</span></div></div>' +
+    '</div>' +
+    '<div class="how-cta"><button class="btn btn-primary btn-lg" onclick="beginTest()">' + tl('letsGoBtn') + '</button></div>' +
+    '</div>';
+}
+
 function renderTask() {
   var task = CAMPAIGN.tasks[state.currentTaskIndex];
-  var progress = Math.round((state.currentTaskIndex / CAMPAIGN.tasks.length) * 100);
-  var taskLabel = tl('taskOf', state.currentTaskIndex + 1, CAMPAIGN.tasks.length);
+  var total = CAMPAIGN.tasks.length;
+  var idx = state.currentTaskIndex;
+  var progress = Math.round((idx / total) * 100);
+  var taskLabel = tl('taskOf', idx + 1, total);
+  var hasSelection = state.selectedNodeId != null;
 
   var html = renderLangBar();
-  html += '<div class="progress-label">' + taskLabel + '</div>';
+
+  html += '<div class="task-nav">';
+  if (idx > 0) {
+    html += '<button class="btn-back" onclick="goBack()">' + tl('back') + '</button>';
+  } else {
+    html += '<span></span>';
+  }
+  html += '<span class="progress-label">' + taskLabel + '</span>';
+  html += '</div>';
   html += '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:' + progress + '%"></div></div>';
 
   html += '<div class="card">';
@@ -273,8 +396,10 @@ function renderTask() {
   html += '<div class="tree-full">';
   html += renderCollapsibleTree(CAMPAIGN.tree.nodes);
   html += '</div>';
-  html += '<div class="dont-find-wrap">';
-  html += '<button class="btn-dont-find" onclick="dontFind()">' + tl('dontFind') + '</button>';
+
+  html += '<div class="task-actions">';
+  html += '<button class="btn-cant-find" onclick="dontFind()">' + tl('cantFind') + '</button>';
+  html += '<button class="btn-confirm"' + (hasSelection ? '' : ' disabled') + ' onclick="confirmSelection()">&#10003; ' + tl('confirmBtn') + '</button>';
   html += '</div>';
 
   return html;
@@ -286,23 +411,31 @@ function renderCollapsibleTree(nodes) {
     var node = nodes[i];
     var hasChildren = node.children && node.children.length > 0;
     var isOpen = !!state.expandedNodes[node.id];
+    var isSelected = state.selectedNodeId === node.id;
+
     html += '<li class="tree-li">';
-    html += '<div class="tree-row">';
+    html += '<div class="tree-row' + (isSelected ? ' selected' : '') + '">';
+
     if (hasChildren) {
-      html += '<button class="tree-toggle" id="tog-' + node.id + '" onclick="toggleNode(&quot;' + node.id + '&quot;)">' +
+      html += '<button class="tree-toggle" onclick="toggleNode(&quot;' + node.id + '&quot;)">' +
         (isOpen ? '&#9660;' : '&#9654;') + '</button>';
     } else {
       html += '<span class="tree-spacer">&#8226;</span>';
     }
-    html += '<button class="tree-lbl" onclick="' + (hasChildren ? 'toggleNode(&quot;' + node.id + '&quot;)' : 'selectNode(&quot;' + node.id + '&quot;)') + '">' +
+
+    html += '<button class="tree-lbl" onclick="selectNode(&quot;' + node.id + '&quot;)">' +
       eh(node.label) + '</button>';
-    html += '<button class="tree-sel" id="btn-' + node.id + '" onclick="selectNode(&quot;' + node.id + '&quot;)">' + tl('selectBtn') + '</button>';
-    html += '</div>';
-    if (hasChildren) {
-      html += '<div class="tree-ch' + (isOpen ? ' open' : '') + '" id="ch-' + node.id + '">';
-      html += renderCollapsibleTree(node.children);
-      html += '</div>';
+
+    if (isSelected) {
+      html += '<span class="tree-check">&#10003;</span>';
     }
+
+    html += '</div>';
+
+    if (hasChildren && isOpen) {
+      html += '<div class="tree-ch">' + renderCollapsibleTree(node.children) + '</div>';
+    }
+
     html += '</li>';
   }
   html += '</ul>';
@@ -361,7 +494,13 @@ function startTest() {
   var name = nameEl ? nameEl.value.trim() : '';
   if (!name) { alert(tl('nameAlert')); if (nameEl) nameEl.focus(); return; }
   state.participantName = name;
+  state.screen = 'instructions';
+  render();
+}
+
+function beginTest() {
   state.screen = 'task';
+  state.currentTaskIndex = 0;
   beginTask();
   render();
 }
@@ -370,22 +509,35 @@ function beginTask() {
   state.taskStartTime = Date.now();
   state.currentNavHistory = [];
   state.expandedNodes = {};
+  state.selectedNodeId = null;
 }
 
 function toggleNode(nodeId) {
   state.expandedNodes[nodeId] = !state.expandedNodes[nodeId];
-  var ch = document.getElementById('ch-' + nodeId);
-  var tog = document.getElementById('tog-' + nodeId);
-  if (ch) { ch.classList.toggle('open', !!state.expandedNodes[nodeId]); }
-  if (tog) { tog.innerHTML = state.expandedNodes[nodeId] ? '&#9660;' : '&#9654;'; }
+  render();
+}
+
+function selectNode(nodeId) {
+  state.selectedNodeId = (state.selectedNodeId === nodeId) ? null : nodeId;
+  render();
+}
+
+function confirmSelection() {
+  if (state.selectedNodeId == null) return;
+  commitSelection(state.selectedNodeId);
 }
 
 function dontFind() { commitSelection(null); }
 
-function selectNode(nodeId) {
-  var btn = document.getElementById('btn-' + nodeId);
-  if (btn) { btn.classList.add('selecting'); }
-  setTimeout(function() { commitSelection(nodeId); }, 180);
+function goBack() {
+  if (state.currentTaskIndex === 0) return;
+  state.currentTaskIndex--;
+  var prev = state.taskResults.pop();
+  state.selectedNodeId = prev ? prev.selectedNodeId : null;
+  state.expandedNodes = {};
+  state.currentNavHistory = [];
+  state.taskStartTime = Date.now();
+  render();
 }
 
 function commitSelection(nodeId) {
