@@ -41,7 +41,8 @@ const T = {
     perTaskBreakdown: 'Per-Task Breakdown',
     response: 'response', responses: 'responses', correct: 'correct', avgTime: 'avg',
     participant: 'Participant', selected: 'Selected', pathTaken: 'Path taken', time: 'Time',
-    passed: 'PASSED', failed: 'FAILED', notFound: '(not found)',
+    passed: 'PASSED', failed: 'FAILED', notFound: '(not found)', passedFailed: 'PASSED/FAILED',
+    questionLabelFr: 'Question (French)', questionLabelEn: 'Question (English)',
     errorRateChart: 'Error Rate by Task (%)', avgTimeChart: 'Average Time by Task (s)',
     newCampaignTitle: 'New Campaign', editCampaignTitle: 'Edit Campaign Info',
     campaignNameLabel: 'Campaign name', descriptionLabel: 'Description',
@@ -108,7 +109,8 @@ const T = {
     perTaskBreakdown: 'Détail par tâche',
     response: 'réponse', responses: 'réponses', correct: 'correct', avgTime: 'moy.',
     participant: 'Participant', selected: 'Sélectionné', pathTaken: 'Chemin parcouru', time: 'Temps',
-    passed: 'RÉUSSI', failed: 'ÉCHOUÉ', notFound: '(non trouvé)',
+    passed: 'RÉUSSI', failed: 'ÉCHOUÉ', notFound: '(non trouvé)', passedFailed: 'RÉUSSI/ÉCHOUÉ',
+    questionLabelFr: 'Question (français)', questionLabelEn: 'Question (anglais)',
     errorRateChart: 'Taux d\'erreur par tâche (%)', avgTimeChart: 'Temps moyen par tâche (s)',
     newCampaignTitle: 'Nouvelle campagne', editCampaignTitle: 'Modifier la campagne',
     campaignNameLabel: 'Nom de la campagne', descriptionLabel: 'Description',
@@ -139,7 +141,7 @@ const T = {
   }
 };
 
-let lang = localStorage.getItem('tt-lang') || 'en';
+let lang = localStorage.getItem('tt-lang') || 'fr';
 function t(key) { const v = (T[lang] || T.en)[key]; return v !== undefined ? v : key; }
 function setLang(l) { lang = l; localStorage.setItem('tt-lang', l); App.render(); }
 
@@ -218,6 +220,25 @@ function flattenTree(nodes, result = []) {
 function findNodeById(nodes, id) {
   for (const n of (nodes || [])) { if (n.id === id) return n; const f = findNodeById(n.children, id); if (f) return f; }
   return null;
+}
+
+function getTaskQuestion(task, l) {
+  if (!task) return '';
+  const q = task.question;
+  if (q && typeof q === 'object') return q[l || lang] || q.fr || q.en || '';
+  return typeof q === 'string' ? q : '';
+}
+
+function reEvaluateResults(campaign) {
+  const taskMap = {};
+  (campaign.tasks || []).forEach(task => { taskMap[task.id] = task; });
+  (campaign.results || []).forEach(result => {
+    (result.tasks || []).forEach(tr => {
+      const task = taskMap[tr.taskId];
+      if (!task) return;
+      tr.isCorrect = tr.selectedNodeId != null && (task.correctNodeIds || []).indexOf(tr.selectedNodeId) !== -1;
+    });
+  });
 }
 
 // ===== SORT STATE =====
@@ -470,7 +491,7 @@ function renderTaskItem(campaign, task, index) {
           <button class="btn btn-danger btn-sm" onclick="deleteTask('${campaign.id}','${task.id}')">${t('delete2')}</button>
         </div>
       </div>
-      <p class="task-question">${escapeHtml(task.question)}</p>
+      <p class="task-question">${escapeHtml(getTaskQuestion(task, lang))}</p>
       <div class="task-answers">
         <span class="answer-label">${correctNodes.length !== 1 ? t('expectedAnswers') : t('expectedAnswer')}:</span>
         ${correctNodes.length > 0
@@ -586,7 +607,7 @@ function renderTaskResultCard(campaign, results, ts, i) {
   const rows = sortedRows(ts.responses, results);
   return `
     <div class="task-result-card card">
-      <div class="task-result-header"><strong>${t('tabTasks').replace(/s$/, '')} ${i + 1}:</strong> ${escapeHtml(ts.task.question)}</div>
+      <div class="task-result-header"><strong>${t('tabTasks').replace(/s$/, '')} ${i + 1}:</strong> ${escapeHtml(getTaskQuestion(ts.task, lang))}</div>
       <div class="task-result-stats">
         <span class="stat-inline">${ts.responses.length} ${ts.responses.length !== 1 ? t('responses') : t('response')}</span>
         <span class="stat-inline success">${ts.responses.length > 0 ? Math.round(ts.correct / ts.responses.length * 100) : 0}% ${t('correct')}</span>
@@ -599,7 +620,7 @@ function renderTaskResultCard(campaign, results, ts, i) {
               ${sortHeader('name', t('participant'), campaign.id)}
               ${sortHeader('selected', t('selected'), campaign.id)}
               ${sortHeader('path', t('pathTaken'), campaign.id)}
-              ${sortHeader('correct', '✓?', campaign.id)}
+              ${sortHeader('correct', t('passedFailed'), campaign.id)}
               ${sortHeader('time', t('time'), campaign.id)}
             </tr></thead>
             <tbody>
@@ -705,8 +726,10 @@ function showAddTaskModal(campaignId) {
   const campaign = DB.getCampaign(campaignId);
   if (!campaign) return;
   showModal(`<h3>${t('addTaskTitle')}</h3>
-    <div class="form-group"><label>${t('questionLabel')} <span style="color:#dc2626">*</span></label>
-      <textarea id="task-question" class="form-input" rows="3" autofocus></textarea></div>
+    <div class="form-group"><label>${t('questionLabelFr')} <span style="color:#dc2626">*</span></label>
+      <textarea id="task-question-fr" class="form-input" rows="2" autofocus></textarea></div>
+    <div class="form-group"><label>${t('questionLabelEn')}</label>
+      <textarea id="task-question-en" class="form-input" rows="2"></textarea></div>
     <div class="form-group"><label>${t('correctAnswersLabel')} <span class="text-muted">${t('correctAnswersHint')}</span></label>
       <div class="tree-selector card">${renderTreeSelector(campaign.tree.nodes, [])}</div></div>
     <div class="modal-actions">
@@ -721,8 +744,10 @@ function showEditTaskModal(campaignId, taskId) {
   const task = (campaign.tasks || []).find(t => t.id === taskId);
   if (!task) return;
   showModal(`<h3>${t('editTaskTitle')}</h3>
-    <div class="form-group"><label>${t('questionLabel')} <span style="color:#dc2626">*</span></label>
-      <textarea id="task-question" class="form-input" rows="3">${escapeHtml(task.question)}</textarea></div>
+    <div class="form-group"><label>${t('questionLabelFr')} <span style="color:#dc2626">*</span></label>
+      <textarea id="task-question-fr" class="form-input" rows="2">${escapeHtml(getTaskQuestion(task, 'fr'))}</textarea></div>
+    <div class="form-group"><label>${t('questionLabelEn')}</label>
+      <textarea id="task-question-en" class="form-input" rows="2">${escapeHtml(getTaskQuestion(task, 'en'))}</textarea></div>
     <div class="form-group"><label>${t('correctAnswersLabel')}</label>
       <div class="tree-selector card">${renderTreeSelector(campaign.tree.nodes, task.correctNodeIds || [])}</div></div>
     <div class="modal-actions">
@@ -814,7 +839,7 @@ function importCSV(campaignId) {
   const tree = parseCSV(text);
   if (!tree.nodes.length) { alert(t('noNodesParsed')); return; }
   const c = DB.getCampaign(campaignId);
-  c.tree = tree; pruneTaskAnswers(c); DB.saveCampaign(c);
+  c.tree = tree; pruneTaskAnswers(c); reEvaluateResults(c); DB.saveCampaign(c);
   hideModal(); App.navigate('campaign', { campaignId, tab: 'tree' });
 }
 
@@ -824,7 +849,7 @@ function importMD(campaignId) {
   const tree = parseMD(text);
   if (!tree.nodes.length) { alert(t('noNodesParsed')); return; }
   const c = DB.getCampaign(campaignId);
-  c.tree = tree; pruneTaskAnswers(c); DB.saveCampaign(c);
+  c.tree = tree; pruneTaskAnswers(c); reEvaluateResults(c); DB.saveCampaign(c);
   hideModal(); App.navigate('campaign', { campaignId, tab: 'tree' });
 }
 
@@ -836,23 +861,26 @@ function pruneTaskAnswers(campaign) {
 }
 
 function addTask(campaignId) {
-  const question = document.getElementById('task-question').value.trim();
-  if (!question) { alert(t('enterQuestionAlert')); return; }
+  const qFr = document.getElementById('task-question-fr').value.trim();
+  const qEn = document.getElementById('task-question-en').value.trim();
+  if (!qFr && !qEn) { alert(t('enterQuestionAlert')); return; }
   const correctNodeIds = Array.from(document.querySelectorAll('input[name="correct-nodes"]:checked')).map(cb => cb.value);
   const c = DB.getCampaign(campaignId);
-  c.tasks.push({ id: generateId(), question, correctNodeIds });
+  c.tasks.push({ id: generateId(), question: { fr: qFr || qEn, en: qEn || qFr }, correctNodeIds });
   DB.saveCampaign(c);
   hideModal();
   App.navigate('campaign', { campaignId, tab: 'tasks' });
 }
 
 function updateTask(campaignId, taskId) {
-  const question = document.getElementById('task-question').value.trim();
-  if (!question) { alert(t('enterQuestionAlert')); return; }
+  const qFr = document.getElementById('task-question-fr').value.trim();
+  const qEn = document.getElementById('task-question-en').value.trim();
+  if (!qFr && !qEn) { alert(t('enterQuestionAlert')); return; }
   const correctNodeIds = Array.from(document.querySelectorAll('input[name="correct-nodes"]:checked')).map(cb => cb.value);
   const c = DB.getCampaign(campaignId);
   const idx = c.tasks.findIndex(task => task.id === taskId);
-  if (idx >= 0) c.tasks[idx] = { ...c.tasks[idx], question, correctNodeIds };
+  if (idx >= 0) c.tasks[idx] = { ...c.tasks[idx], question: { fr: qFr || qEn, en: qEn || qFr }, correctNodeIds };
+  reEvaluateResults(c);
   DB.saveCampaign(c);
   hideModal();
   App.navigate('campaign', { campaignId, tab: 'tasks' });

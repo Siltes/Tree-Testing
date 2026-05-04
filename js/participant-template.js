@@ -244,7 +244,7 @@ var state = {
   currentNavHistory: [],
   taskResults: [],
   resultFilename: '',
-  lang: CAMPAIGN.lang || 'en',
+  lang: CAMPAIGN.lang || 'fr',
   expandedNodes: {},
   selectedNodeId: null
 };
@@ -262,6 +262,12 @@ function eh(str) {
   return String(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getTaskQuestion(task) {
+  var q = task.question;
+  if (q && typeof q === 'object') return q[state.lang] || q.fr || q.en || '';
+  return typeof q === 'string' ? q : '';
 }
 
 function findNode(nodes, id) {
@@ -389,7 +395,7 @@ function renderTask() {
 
   html += '<div class="card">';
   html += '<div class="task-number">' + taskLabel + '</div>';
-  html += '<div class="task-question">' + eh(task.question) + '</div>';
+  html += '<div class="task-question">' + eh(getTaskQuestion(task)) + '</div>';
   html += '<div class="task-hint">' + tl('taskHint') + '</div>';
   html += '</div>';
 
@@ -549,7 +555,7 @@ function commitSelection(nodeId) {
 
   if (node) { state.currentNavHistory.push({ nodeId: nodeId, label: node.label, action: 'select' }); }
   state.taskResults.push({
-    taskId: task.id, question: task.question,
+    taskId: task.id, question: getTaskQuestion(task),
     selectedNodeId: nodeId != null ? nodeId : null,
     selectedNodeLabel: node ? node.label : null,
     selectedPath: selectedPath, correctNodeIds: task.correctNodeIds || [],

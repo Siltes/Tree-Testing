@@ -16,14 +16,14 @@ Tree testing is a UX research method that evaluates how well users can navigate 
 
 - **Campaign management** — create, open, and delete campaigns; all data persists in `localStorage`
 - **Tree import** — paste or upload a navigation tree as a CSV path list or a nested Markdown list; live preview on input
-- **Task editor** — define one or more tasks per campaign; each task has a question and one or more correct answer nodes selected from the tree
+- **Task editor** — define one or more tasks per campaign; each task has a separate question per language (FR and EN) and one or more correct answer nodes selected from the tree; the participant sees the question in their chosen language
 - **Export** — generate a self-contained single-file participant HTML with all campaign data embedded; no server or internet required to run
-- **Results import** — drag-drop one or many participant JSON result files; duplicate detection prevents double-counting
+- **Results import** — drag-drop one or many participant JSON result files; duplicate detection prevents double-counting; results are automatically re-scored whenever task correct-answer definitions change
 - **Results analysis**:
   - Summary stats (participants, tasks, average success rate)
   - SVG bar charts: error rate per task and average time per task
-  - Per-task sortable response table with **PASSED / FAILED** labels, selected item, full path taken, and time spent
-- **Bilingual UI** — EN / FR toggle in the header; language preference stored in `localStorage`
+  - Per-task sortable response table with **PASSED / FAILED** column, selected item, full path taken, and time spent
+- **Bilingual UI** — FR / EN toggle in the header; French is the default language; preference stored in `localStorage`
 
 ### Participant Mini-App (exported `.html`)
 
@@ -123,7 +123,7 @@ Standard nested unordered list (2 or 4 spaces per indent level):
   "tasks": [
     {
       "taskId": "task1",
-      "question": "Where would you find returns information?",
+      "question": "Où trouveriez-vous les informations sur les retours ?",
       "selectedNodeId": "n_xyz",
       "selectedNodeLabel": "Returns",
       "selectedPath": ["Home", "Support", "Returns"],
