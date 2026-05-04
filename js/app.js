@@ -46,6 +46,8 @@ const T = {
     translateTree: 'EN Labels', translateTitle: 'English Node Labels',
     translateDesc: 'Add an English label for each node. Participants will see labels in their selected language. Leave a field blank to fall back to the French label.',
     labelFr: 'French (default)', labelEn: 'English', saveTranslationsBtn: 'Save Labels',
+    addNodeTitle: 'Add Node', editNodeTitle: 'Edit Node', addNodeBtn: 'Add',
+    addRootNode: 'Add node', deleteNodeConfirm: 'Delete this node and all its descendants? This cannot be undone.',
     errorRateChart: 'Error Rate by Task (%)', avgTimeChart: 'Average Time by Task (s)',
     newCampaignTitle: 'New Campaign', editCampaignTitle: 'Edit Campaign Info',
     campaignNameLabel: 'Campaign name', descriptionLabel: 'Description',
@@ -117,6 +119,8 @@ const T = {
     translateTree: 'Libellés EN', translateTitle: 'Libellés en anglais',
     translateDesc: 'Ajoutez un libellé anglais pour chaque nœud. Les participants verront les libellés dans leur langue. Laissez vide pour utiliser le libellé français.',
     labelFr: 'Français (par défaut)', labelEn: 'Anglais', saveTranslationsBtn: 'Enregistrer les libellés',
+    addNodeTitle: 'Ajouter un nœud', editNodeTitle: 'Modifier le nœud', addNodeBtn: 'Ajouter',
+    addRootNode: 'Ajouter un nœud', deleteNodeConfirm: 'Supprimer ce nœud et tous ses descendants ? Cette action est irréversible.',
     errorRateChart: 'Taux d\'erreur par tâche (%)', avgTimeChart: 'Temps moyen par tâche (s)',
     newCampaignTitle: 'Nouvelle campagne', editCampaignTitle: 'Modifier la campagne',
     campaignNameLabel: 'Nom de la campagne', descriptionLabel: 'Description',
@@ -240,6 +244,13 @@ function getNodeLabel(node, l) {
   const lbl = node.label;
   if (lbl && typeof lbl === 'object') return lbl[l || lang] || lbl.fr || lbl.en || '';
   return typeof lbl === 'string' ? lbl : '';
+}
+
+function removeNodeById(nodes, targetId) {
+  const i = nodes.findIndex(n => n.id === targetId);
+  if (i >= 0) { nodes.splice(i, 1); return true; }
+  for (const n of nodes) { if (removeNodeById(n.children || [], targetId)) return true; }
+  return false;
 }
 
 function flattenWithDepth(nodes, depth, result) {
@@ -464,7 +475,12 @@ function renderTreeTab(campaign) {
         </div>
       </div>
       ${hasTree
-        ? `<div class="card tree-preview">${renderAdminTree(campaign.tree.nodes, 0)}</div>`
+        ? `<div class="card tree-preview">
+            ${renderAdminTree(campaign.tree.nodes, 0, campaign.id)}
+            <div class="tree-add-root">
+              <button class="btn-node-action" onclick="showAddChildModal('${campaign.id}', null)">+ ${t('addRootNode')}</button>
+            </div>
+          </div>`
         : `<div class="empty-state small">
             <p>${t('noTreeMsg')}</p>
             <div class="btn-group" style="justify-content:center">
@@ -475,19 +491,25 @@ function renderTreeTab(campaign) {
     </div>`;
 }
 
-function renderAdminTree(nodes, depth) {
+function renderAdminTree(nodes, depth, campaignId) {
   if (!nodes || !nodes.length) return '';
   return `<ul class="tree-list" style="padding-left:${depth > 0 ? '1.5rem' : '0'}">
     ${nodes.map(node => {
       const hasChildren = node.children && node.children.length > 0;
       const tid = `tt-${node.id}`, cid = `tc-${node.id}`;
+      const actions = campaignId ? `<div class="tree-node-actions">
+          <button class="btn-node-action" title="${t('editNodeTitle')}" onclick="event.stopPropagation();showEditNodeModal('${campaignId}','${node.id}')">✏</button>
+          <button class="btn-node-action" title="${t('addNodeTitle')}" onclick="event.stopPropagation();showAddChildModal('${campaignId}','${node.id}')">+</button>
+          <button class="btn-node-action danger" title="${t('deleteNodeConfirm').split('?')[0]}" onclick="event.stopPropagation();deleteNode('${campaignId}','${node.id}')">✕</button>
+        </div>` : '';
       return `<li class="tree-item">
         <div class="tree-node" onclick="${hasChildren ? `toggleTreeNode('${tid}','${cid}')` : ''}">
           <span class="tree-node-icon">${hasChildren ? '📁' : '📄'}</span>
           <span class="tree-node-label">${escapeHtml(getNodeLabel(node, lang))}</span>
           ${hasChildren ? `<span class="tree-toggle" id="${tid}">▶</span>` : ''}
+          ${actions}
         </div>
-        ${hasChildren ? `<div class="tree-children" id="${cid}">${renderAdminTree(node.children, depth + 1)}</div>` : ''}
+        ${hasChildren ? `<div class="tree-children" id="${cid}">${renderAdminTree(node.children, depth + 1, campaignId)}</div>` : ''}
       </li>`;
     }).join('')}
   </ul>`;
@@ -804,6 +826,75 @@ function saveTranslations(campaignId) {
   });
   DB.saveCampaign(c);
   hideModal();
+  App.navigate('campaign', { campaignId, tab: 'tree' });
+}
+
+function showEditNodeModal(campaignId, nodeId) {
+  const c = DB.getCampaign(campaignId);
+  const node = findNodeById(c.tree.nodes, nodeId);
+  if (!node) return;
+  const frLabel = getNodeLabel(node, 'fr');
+  const enLabel = (node.label && typeof node.label === 'object') ? (node.label.en || '') : '';
+  showModal(`<h3>${t('editNodeTitle')}</h3>
+    <div class="form-group"><label>${t('labelFr')} <span style="color:#dc2626">*</span></label>
+      <input type="text" id="node-label-fr" class="form-input" value="${escapeHtml(frLabel)}" autofocus></div>
+    <div class="form-group"><label>${t('labelEn')}</label>
+      <input type="text" id="node-label-en" class="form-input" value="${escapeHtml(enLabel)}"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" onclick="hideModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="saveNodeEdit('${campaignId}','${nodeId}')">${t('save')}</button>
+    </div>`);
+}
+
+function saveNodeEdit(campaignId, nodeId) {
+  const fr = document.getElementById('node-label-fr').value.trim();
+  const en = document.getElementById('node-label-en').value.trim();
+  if (!fr && !en) { alert(lang === 'fr' ? 'Veuillez entrer un libellé.' : 'Please enter a label.'); return; }
+  const c = DB.getCampaign(campaignId);
+  const node = findNodeById(c.tree.nodes, nodeId);
+  if (node) node.label = { fr: fr || en, en: en || fr };
+  DB.saveCampaign(c);
+  hideModal();
+  App.navigate('campaign', { campaignId, tab: 'tree' });
+}
+
+function showAddChildModal(campaignId, parentId) {
+  const parentArg = parentId ? `'${parentId}'` : 'null';
+  showModal(`<h3>${t('addNodeTitle')}</h3>
+    <div class="form-group"><label>${t('labelFr')} <span style="color:#dc2626">*</span></label>
+      <input type="text" id="node-label-fr" class="form-input" autofocus></div>
+    <div class="form-group"><label>${t('labelEn')}</label>
+      <input type="text" id="node-label-en" class="form-input"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" onclick="hideModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" onclick="addChildNode('${campaignId}',${parentArg})">${t('addNodeBtn')}</button>
+    </div>`);
+}
+
+function addChildNode(campaignId, parentId) {
+  const fr = document.getElementById('node-label-fr').value.trim();
+  const en = document.getElementById('node-label-en').value.trim();
+  if (!fr && !en) { alert(lang === 'fr' ? 'Veuillez entrer un libellé.' : 'Please enter a label.'); return; }
+  const c = DB.getCampaign(campaignId);
+  const newNode = { id: 'n_' + generateId(), label: { fr: fr || en, en: en || fr }, children: [] };
+  if (parentId) {
+    const parent = findNodeById(c.tree.nodes, parentId);
+    if (parent) parent.children.push(newNode);
+  } else {
+    c.tree.nodes.push(newNode);
+  }
+  DB.saveCampaign(c);
+  hideModal();
+  App.navigate('campaign', { campaignId, tab: 'tree' });
+}
+
+function deleteNode(campaignId, nodeId) {
+  if (!confirm(t('deleteNodeConfirm'))) return;
+  const c = DB.getCampaign(campaignId);
+  removeNodeById(c.tree.nodes, nodeId);
+  pruneTaskAnswers(c);
+  reEvaluateResults(c);
+  DB.saveCampaign(c);
   App.navigate('campaign', { campaignId, tab: 'tree' });
 }
 

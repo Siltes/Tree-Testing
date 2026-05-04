@@ -307,9 +307,22 @@ textarea.form-input { resize: vertical; }
 .tree-node:hover { background: #f1f5f9; }
 
 .tree-node-icon { font-size: 0.9rem; flex-shrink: 0; }
-.tree-node-label { font-size: 0.875rem; color: #1e293b; }
-.tree-toggle { font-size: 0.7rem; color: #94a3b8; margin-left: auto; transition: transform 0.15s; }
+.tree-node-label { font-size: 0.875rem; color: #1e293b; flex: 1; min-width: 0; }
+.tree-toggle { font-size: 0.7rem; color: #94a3b8; flex-shrink: 0; transition: transform 0.15s; }
 .tree-toggle.open { transform: rotate(90deg); }
+.tree-node-actions {
+  display: flex; align-items: center; gap: .1rem; flex-shrink: 0;
+  visibility: hidden;
+}
+.tree-node:hover .tree-node-actions { visibility: visible; }
+.btn-node-action {
+  background: none; border: 1px solid transparent; border-radius: 3px; cursor: pointer;
+  font-size: .75rem; padding: .15rem .35rem; line-height: 1; font-family: inherit;
+  color: #64748b; transition: background .1s, border-color .1s, color .1s;
+}
+.btn-node-action:hover { background: #fff; border-color: #e2e8f0; color: #1e293b; }
+.btn-node-action.danger:hover { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.tree-add-root { padding: .4rem 0 .1rem; border-top: 1px dashed #e2e8f0; margin-top: .35rem; }
 
 .tree-children { display: none; }
 .tree-children.open { display: block; }
