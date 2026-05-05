@@ -42,6 +42,7 @@ const T = {
     response: 'response', responses: 'responses', correct: 'correct', avgTime: 'avg',
     participant: 'Participant', selected: 'Selected', pathTaken: 'Path taken', time: 'Time',
     passed: 'PASSED', failed: 'FAILED', notFound: '(not found)', passedFailed: 'PASSED/FAILED',
+    deleteParticipantConfirm: 'Remove this participant\'s results? This cannot be undone.',
     questionLabelFr: 'Question (French)', questionLabelEn: 'Question (English)',
     translateTree: 'EN Labels', translateTitle: 'English Node Labels',
     translateDesc: 'Add an English label for each node. Participants will see labels in their selected language. Leave a field blank to fall back to the French label.',
@@ -115,6 +116,7 @@ const T = {
     response: 'réponse', responses: 'réponses', correct: 'correct', avgTime: 'moy.',
     participant: 'Participant', selected: 'Sélectionné', pathTaken: 'Chemin parcouru', time: 'Temps',
     passed: 'RÉUSSI', failed: 'ÉCHOUÉ', notFound: '(non trouvé)', passedFailed: 'RÉUSSI/ÉCHOUÉ',
+    deleteParticipantConfirm: 'Supprimer les résultats de ce participant ? Cette action est irréversible.',
     questionLabelFr: 'Question (français)', questionLabelEn: 'Question (anglais)',
     translateTree: 'Libellés EN', translateTitle: 'Libellés en anglais',
     translateDesc: 'Ajoutez un libellé anglais pour chaque nœud. Les participants verront les libellés dans leur langue. Laissez vide pour utiliser le libellé français.',
@@ -717,6 +719,15 @@ function renderExportTab(campaign) {
 
 // ===== RESULTS TAB =====
 
+function deleteParticipantResult(campaignId, index) {
+  if (!confirm(t('deleteParticipantConfirm'))) return;
+  const c = DB.getCampaign(campaignId);
+  if (!c || !c.results || index < 0 || index >= c.results.length) return;
+  c.results.splice(index, 1);
+  DB.saveCampaign(c);
+  App.navigate('campaign', { campaignId, tab: 'results' });
+}
+
 function renderResultsTab(campaign) {
   const results = campaign.results || [];
   return `
@@ -763,6 +774,21 @@ function renderResultsData(campaign, results) {
         <div class="stat-card"><div class="stat-value">${results.length}</div><div class="stat-label">${t('participants')}</div></div>
         <div class="stat-card"><div class="stat-value">${tasks.length}</div><div class="stat-label">${t('tabTasks')}</div></div>
         <div class="stat-card"><div class="stat-value">${overallSuccess !== null ? overallSuccess + '%' : '—'}</div><div class="stat-label">${t('avgSuccess')}</div></div>
+      </div>
+
+      <div class="participants-list">
+        ${results.map((r, i) => {
+          const correct = (r.tasks || []).filter(tr => tr.isCorrect).length;
+          const total = (r.tasks || []).length;
+          const score = total > 0 ? Math.round(correct / total * 100) : 0;
+          const date = r.timestamp ? formatDate(r.timestamp) : '—';
+          return `<div class="participant-row">
+            <span class="participant-name">${escapeHtml(r.participantName || '?')}</span>
+            <span class="participant-date">${date}</span>
+            <span class="participant-score">${score}%</span>
+            <button class="btn-participant-delete" onclick="deleteParticipantResult('${campaign.id}',${i})" title="${t('deleteParticipantConfirm')}">✕</button>
+          </div>`;
+        }).join('')}
       </div>
 
       ${results.length > 0 && tasks.length > 0 ? `
