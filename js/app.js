@@ -155,6 +155,9 @@ let lang = localStorage.getItem('tt-lang') || 'fr';
 function t(key) { const v = (T[lang] || T.en)[key]; return v !== undefined ? v : key; }
 function setLang(l) { lang = l; localStorage.setItem('tt-lang', l); App.render(); }
 
+let _drag = { nodeId: null, campaignId: null };
+let _openNodes = new Set();
+
 // ===== UTILS =====
 
 function generateId() {
@@ -497,30 +500,141 @@ function renderAdminTree(nodes, depth, campaignId) {
     ${nodes.map(node => {
       const hasChildren = node.children && node.children.length > 0;
       const tid = `tt-${node.id}`, cid = `tc-${node.id}`;
+      const isOpen = _openNodes.has(node.id);
+      const drag = campaignId
+        ? ` draggable="true" data-has-children="${hasChildren}"
+            ondragstart="treeDragStart(event,'${node.id}','${campaignId}')"
+            ondragover="treeDragOver(event,'${node.id}')"
+            ondragleave="treeDragLeave(event)"
+            ondrop="treeDrop(event,'${node.id}','${campaignId}')"
+            ondragend="treeDragEnd(event)"` : '';
       const actions = campaignId ? `<div class="tree-node-actions">
           <button class="btn-node-action" title="${t('editNodeTitle')}" onclick="event.stopPropagation();showEditNodeModal('${campaignId}','${node.id}')">✏</button>
           <button class="btn-node-action" title="${t('addNodeTitle')}" onclick="event.stopPropagation();showAddChildModal('${campaignId}','${node.id}')">+</button>
           <button class="btn-node-action danger" title="${t('deleteNodeConfirm').split('?')[0]}" onclick="event.stopPropagation();deleteNode('${campaignId}','${node.id}')">✕</button>
         </div>` : '';
       return `<li class="tree-item">
-        <div class="tree-node" onclick="${hasChildren ? `toggleTreeNode('${tid}','${cid}')` : ''}">
+        <div class="tree-node"${drag} onclick="${hasChildren ? `toggleTreeNode('${tid}','${cid}','${node.id}')` : ''}">
           <span class="tree-node-icon">${hasChildren ? '📁' : '📄'}</span>
           <span class="tree-node-label">${escapeHtml(getNodeLabel(node, lang))}</span>
-          ${hasChildren ? `<span class="tree-toggle" id="${tid}">▶</span>` : ''}
+          ${hasChildren ? `<span class="tree-toggle${isOpen ? ' open' : ''}" id="${tid}">▶</span>` : ''}
           ${actions}
         </div>
-        ${hasChildren ? `<div class="tree-children" id="${cid}">${renderAdminTree(node.children, depth + 1, campaignId)}</div>` : ''}
+        ${hasChildren ? `<div class="tree-children${isOpen ? ' open' : ''}" id="${cid}">${renderAdminTree(node.children, depth + 1, campaignId)}</div>` : ''}
       </li>`;
     }).join('')}
   </ul>`;
 }
 
-function toggleTreeNode(toggleId, childrenId) {
+function toggleTreeNode(toggleId, childrenId, nodeId) {
   const toggle = document.getElementById(toggleId);
   const children = document.getElementById(childrenId);
   if (!toggle || !children) return;
   const open = children.classList.toggle('open');
   toggle.classList.toggle('open', open);
+  if (nodeId) { if (open) _openNodes.add(nodeId); else _openNodes.delete(nodeId); }
+}
+
+// ===== DRAG AND DROP =====
+
+function findParentChildren(nodes, targetId) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].id === targetId) return { arr: nodes, index: i };
+    const found = findParentChildren(nodes[i].children || [], targetId);
+    if (found) return found;
+  }
+  return null;
+}
+
+function treeDragStart(event, nodeId, campaignId) {
+  if (event.target.closest('.tree-node-actions') || event.target.closest('.tree-toggle')) {
+    event.preventDefault();
+    return;
+  }
+  _drag.nodeId = nodeId;
+  _drag.campaignId = campaignId;
+  event.dataTransfer.effectAllowed = 'move';
+  event.currentTarget.classList.add('dragging');
+}
+
+function treeDragEnd(event) {
+  document.querySelectorAll('.tree-node.dragging,.tree-node.drag-before,.tree-node.drag-after,.tree-node.drag-into')
+    .forEach(el => el.classList.remove('dragging', 'drag-before', 'drag-after', 'drag-into'));
+  _drag.nodeId = null;
+  _drag.campaignId = null;
+}
+
+function treeDragOver(event, nodeId) {
+  if (!_drag.nodeId || _drag.nodeId === nodeId) return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.dataTransfer.dropEffect = 'move';
+
+  const el = event.currentTarget;
+  const rect = el.getBoundingClientRect();
+  const ratio = (event.clientY - rect.top) / rect.height;
+  const hasChildren = el.dataset.hasChildren === 'true';
+
+  document.querySelectorAll('.tree-node.drag-before,.tree-node.drag-after,.tree-node.drag-into')
+    .forEach(n => { if (n !== el) n.classList.remove('drag-before', 'drag-after', 'drag-into'); });
+
+  el.classList.remove('drag-before', 'drag-after', 'drag-into');
+  if (ratio < 0.3) {
+    el.classList.add('drag-before');
+    el.dataset.dropPos = 'before';
+  } else if (ratio > 0.7 || !hasChildren) {
+    el.classList.add('drag-after');
+    el.dataset.dropPos = 'after';
+  } else {
+    el.classList.add('drag-into');
+    el.dataset.dropPos = 'into';
+  }
+}
+
+function treeDragLeave(event) {
+  if (event.currentTarget.contains(event.relatedTarget)) return;
+  event.currentTarget.classList.remove('drag-before', 'drag-after', 'drag-into');
+}
+
+function treeDrop(event, targetNodeId, campaignId) {
+  event.preventDefault();
+  event.stopPropagation();
+  if (!_drag.nodeId || _drag.nodeId === targetNodeId || _drag.campaignId !== campaignId) return;
+
+  const dropPos = event.currentTarget.dataset.dropPos;
+  if (!dropPos) return;
+
+  const campaign = DB.getCampaign(campaignId);
+  if (!campaign) return;
+  const nodes = campaign.tree.nodes;
+
+  const srcPos = findParentChildren(nodes, _drag.nodeId);
+  if (!srcPos) return;
+
+  const moved = srcPos.arr.splice(srcPos.index, 1)[0];
+
+  const tgtPos = findParentChildren(nodes, targetNodeId);
+  if (!tgtPos) {
+    srcPos.arr.splice(srcPos.index, 0, moved);
+    return;
+  }
+
+  let tgtIndex = tgtPos.index;
+  if (tgtPos.arr === srcPos.arr && srcPos.index < tgtPos.index) tgtIndex--;
+
+  if (dropPos === 'before') {
+    tgtPos.arr.splice(tgtIndex, 0, moved);
+  } else if (dropPos === 'after') {
+    tgtPos.arr.splice(tgtIndex + 1, 0, moved);
+  } else {
+    const targetNode = tgtPos.arr[tgtIndex];
+    if (!targetNode.children) targetNode.children = [];
+    targetNode.children.push(moved);
+    _openNodes.add(targetNode.id);
+  }
+
+  DB.saveCampaign(campaign);
+  App.navigate('campaign', { campaignId: campaign.id, tab: 'tree' });
 }
 
 // ===== TASKS TAB =====

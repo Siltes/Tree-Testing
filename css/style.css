@@ -324,6 +324,13 @@ textarea.form-input { resize: vertical; }
 .btn-node-action.danger:hover { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
 .tree-add-root { padding: .4rem 0 .1rem; border-top: 1px dashed #e2e8f0; margin-top: .35rem; }
 
+.tree-node[draggable="true"] { cursor: grab; }
+.tree-node[draggable="true"]:active { cursor: grabbing; }
+.tree-node.dragging { opacity: 0.35; }
+.tree-node.drag-before { box-shadow: 0 -2px 0 0 #2563eb; background: #f1f5f9; }
+.tree-node.drag-after  { box-shadow: 0 2px 0 0 #2563eb;  background: #f1f5f9; }
+.tree-node.drag-into   { background: #dbeafe; outline: 2px solid #3b82f6; outline-offset: -2px; border-radius: 4px; }
+
 .tree-children { display: none; }
 .tree-children.open { display: block; }
 
